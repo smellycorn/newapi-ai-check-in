@@ -1,23 +1,23 @@
 name: newapi.ai 自动签到
-于:
+on:
   schedule:
-    - cron: '23 13 * * *'
+    - cron: '0 */8 * * *'
   workflow_dispatch:
     inputs:
       accounts:
         description: '账号配置 (JSON 格式，可选，不填则使用 secrets.ACCOUNTS)'
         required: false
-        输入: string
-        默认: ''
+        type: string
+        default: ''
       providers:
         description: '自定义 Provider 配置 (JSON 格式，可选，不填则使用 secrets.PROVIDERS)'
         required: false
-        输入: string
-        默认: ''
+        type: string
+        default: ''
       debug:
         description: '调试模式 (启用后会保存截图和 HTML 日志)'
         required: false
-        输入: boolean
+        type: boolean
 
 jobs:
   checkin:
