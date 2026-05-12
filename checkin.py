@@ -7,6 +7,8 @@ import asyncio
 import json
 import inspect
 import hashlib
+import time
+from datetime import datetime
 import os
 import tempfile
 from urllib.parse import urlparse, urlencode
@@ -739,14 +741,45 @@ class CheckIn:
         print(f"🌐 {self.account_name}: Executing check-in")
 
         checkin_headers = headers.copy()
-        checkin_headers.update({"Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest"})
+        checkin_headers.update({
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+        })
 
         check_in_url = self.provider_config.get_check_in_url(api_user)
         if not check_in_url:
             print(f"❌ {self.account_name}: No check-in URL configured")
             return {"success": False, "error": "No check-in URL configured"}
 
-        response = session.post(check_in_url, headers=checkin_headers, timeout=30)
+        post_kwargs = {}
+
+        if "ai.huaibao.top" in self.provider_config.origin:
+            month = datetime.now().strftime("%Y-%m")
+            status_url = f"{self.provider_config.origin}/api/user/checkin?month={month}"
+
+            status_response = session.get(status_url, headers=headers, timeout=30)
+            status_json = response_resolve(status_response, "huaibao_checkin_status", self.account_name)
+
+            checkin_nonce = ""
+            if status_json:
+                checkin_nonce = (
+                    status_json.get("data", {}).get("checkin_nonce")
+                    or status_json.get("checkin_nonce")
+                    or ""
+                )
+
+            timestamp = str(int(time.time()))
+            signature_raw = f"{api_user}:{timestamp}:{checkin_nonce}"
+            signature = hashlib.sha256(signature_raw.encode("utf-8")).hexdigest()
+
+            checkin_headers.update({
+                "X-Checkin-Timestamp": timestamp,
+                "X-Checkin-Signature": signature,
+            })
+
+            post_kwargs["json"] = {}
+
+        response = session.post(check_in_url, headers=checkin_headers, timeout=30, **post_kwargs)
 
         print(f"📨 {self.account_name}: Response status code {response.status_code}")
 
