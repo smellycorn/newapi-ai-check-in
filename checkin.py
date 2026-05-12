@@ -770,6 +770,7 @@ class CheckIn:
                 or json_data.get("code") == 0
                 or json_data.get("success")
                 or "已经签到" in message
+                or "已签到" in message
                 or "签到成功" in message
             ):
                 # 提取签到数据
